@@ -36,39 +36,7 @@ func timeDT() {
 	})
 	t.Start()
 	fmt.Println(TokenMap)
-}
-
-// 路由和处理函数放在不同文件好像会使中间件失效
-// func Login(c *gin.Context) {
-//     user := db.MalUser{}
-//     // 绑定json和结构体(接收json,数据放入结构体)
-//     if err := c.BindJSON(&user); err != nil {
-//         return
-//     }
-//     uname := user.Uname
-//     upass := user.Upass
-//     userModel, err := db.GetUserByName(uname, upass)
-//     if err != nil || &userModel == nil {
-//         fmt.Println(err)
-//         c.JSON(500, gin.H{
-//             "status": 500,
-//             "msg":    "登录失败",
-//         })
-//         return
-//     }
-//     token := utils.SignJWT("malred", uname, upass)
-//     // 存入map
-//     // fmt.Println(c.ClientIP(),c.RemoteIP())
-//     TokenMap[c.ClientIP()] = token
-//     fmt.Println(TokenMap)
-//     c.JSON(http.StatusOK, gin.H{
-//         "status": 200,
-//         "msg":    "登录成功",
-//         // 返回jwt令牌(密码因为前端md5加密过,所以直接放入jwt)
-//         "token": token,
-//     })
-//     go timeDT()
-// }
+} 
 
 // 路由器
 // 启动默认的路由
@@ -85,6 +53,8 @@ func Run() {
 	r.Use(gin.Recovery())
 	// 跨域
 	r.Use(Core())
+	// 验证
+	r.Use(TokenValid())
 	// 阻止缓存响应
 	r.Use(NoCache())
 	// 安全设置

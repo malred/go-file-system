@@ -1,18 +1,21 @@
 package go_file_web
 
 import (
-	"github.com/gin-gonic/gin"
+	"fmt"
 	utils "go_file_util"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 //解决跨域问题
 func Core() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+		c.Header("Access-Control-Allow-Origin", origin)
 		c.Header("Access-Control-Allow-Headers", "*")
 		c.Header("Access-Control-Allow-Methods", "*")
 		c.Header("Access-Control-Expose-Headers", "Content-Length,Access-Control-Allow-Origin,Access-Control-Allow-Headers,Content-Type")
@@ -63,6 +66,44 @@ func Token() gin.HandlerFunc {
 		}
 		// 验证jwt
 		// utils.ParseJWT(secret[0][8:11]+secret[0][19:22], token[0])
+		//处理请求
+		c.Next()
+	}
+}
+
+// 权限认证(验证token) -> 请求服务器
+func TokenValid() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		url := "http://127.0.0.1:3000/validate"
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			fmt.Println("TestGetReq http.NewRequest err:", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+		token, err := c.Cookie("Authorization")
+		// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODUzNjA5NjksInN1YiI6NH0.K2kE3Gjp1OW96XBevTkC6tFPWkskhm02WiCeTGEEOAo
+		fmt.Println("token: ", token)
+		if err != nil {
+			fmt.Println("Get token error:", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+		c1 := http.Cookie{
+			Name:     "Authorization",
+			Value:    token,
+			HttpOnly: true,
+		}
+		req.AddCookie(&c1)
+		client := &http.Client{Timeout: 5 * time.Second} // 设置请求超时时长5s
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Println("TestGetReq http.DefaultClient.Do() err: ", err)
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+		defer resp.Body.Close()
+		// 如果认证失败
+		if resp.StatusCode == http.StatusUnauthorized {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
 		//处理请求
 		c.Next()
 	}
